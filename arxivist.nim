@@ -14,8 +14,12 @@ type SearchTerms* = object
 
 
 proc build_search_string(terms: SearchTerms) : string =
-  let title = foldr(terms.title, a & "+" & b)
-  result = "http://export.arxiv.org/api/query?search_query=ti:" & title
+  let title =
+    if len(terms.title) > 0:
+      "ti:" & foldr(terms.title, a & "+" & b)
+    else:
+      ""
+  result = "http://export.arxiv.org/api/query?search_query=" & title
 
 proc search*(terms: SearchTerms) : seq[Entry] =
   let search_string = build_search_string(terms)
@@ -26,7 +30,6 @@ proc search*(terms: SearchTerms) : seq[Entry] =
   let doc = content.parseXML
   let elem = doc.findAll("entry")
   for entryXML in elem:
-    echo entryXML
     let id = entryXML.child("id").innerText
     let updated = entryXML.child("updated").innerText
     let published = entryXML.child("published").innerText
@@ -46,7 +49,13 @@ proc search*(terms: SearchTerms) : seq[Entry] =
   result = entries
 
 
-let terms = SearchTerms(title: @["filter"])
-let entries = search(terms)
+if isMainModule:
+  let terms = SearchTerms(title: @["filter", "mcmc"])
+  let entries = search(terms)
 
-echo entries
+  for entry in entries:
+    echo "----------------"
+    echo "Title: " & entry.title
+    echo "Authors: " & entry.authors
+    echo "Summary: " & entry.summary
+    echo "Categories: " & entry.categories
